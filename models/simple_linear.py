@@ -3,7 +3,7 @@ from model_util import *
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
+REC_PER_EPOCH = 1
 epoch_ref = [0]
 
 class LinearClassifier(nn.Module):
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     #Training
     epoch_ref[0] = payload.get("epoch", 0)
     starting_epoch = epoch_ref[0]
-    epochs = 10
+    epochs = 20
 
     for epoch in range(starting_epoch , starting_epoch + epochs):
         epoch_ref[0] = epoch
@@ -63,7 +63,7 @@ if __name__ == '__main__':
             correct += predicted.eq(labels).sum().item()
 
         train_acc = 100.0 * correct / total
-        if (epoch+1) % 1 == 0:
+        if (epoch+1) % REC_PER_EPOCH == 0:
             print("Logging training_acc and loss...")
             training_acc.append((epoch+1, train_acc))
             loss_ref.append((epoch+1, running_loss/len(train_loader)))

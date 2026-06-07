@@ -8,6 +8,7 @@ from pyro.infer import SVI, Trace_ELBO
 from pyro.optim import Adam
 
 epoch_ref = [0]
+REC_PER_EPOCH = 1
 
 # note: the model is not a predictor. it instead produces a representation of the data
 # through its hidden layers in order to aid other classifiers.
@@ -120,7 +121,7 @@ def train_rbm(meta:dict, rbm: RBM, epochs:int = 10, h_dim:int =256,lr:float =1e-
             total_loss += svi.step(v)
         avg = total_loss / len(train_loader.dataset)
         print("RBM epoch", epoch)
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % REC_PER_EPOCH == 0:
             print("evaluating...")
             tr_correct = tr_total = te_correct = te_total = 0
             for v, _ in train_loader:
@@ -154,7 +155,7 @@ def train_rbm(meta:dict, rbm: RBM, epochs:int = 10, h_dim:int =256,lr:float =1e-
 
 if __name__ == '__main__':
     #hyper params
-    epochs = 10
+    epochs = 20
     hidden_dim = 256
     lr = 1e-3
 

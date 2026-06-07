@@ -9,6 +9,7 @@ from pyro.infer import SVI, Trace_ELBO
 from pyro.optim import Adam
 
 epoch_ref = [0]
+REC_PER_EPOCH = 1
 
 class NaiveBayesModel:
     """
@@ -166,7 +167,7 @@ def train_naive_bayes(meta, epochs:int = 5, lr:float = 5e-3) -> NaiveBayesModel:
         avg = total_loss / len(train_loader.dataset)
         print(f"NB epoch: {epoch}")
         # Accuracy
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % REC_PER_EPOCH == 0:
             print("evaluating...")
             tr_correct = tr_total = te_correct = te_total = 0
             for x, y in train_loader:
@@ -199,7 +200,7 @@ if __name__ == '__main__':
     install_interrupt_save("naive-bayes-model", None, epoch_ref, meta)
 
     # Hyper parameters
-    epochs = 10
+    epochs = 20
     lr = 5e-3
     nb = train_naive_bayes(meta, epochs, lr)
     save_model("naive-bayes-model", None, epoch_ref[0], meta)

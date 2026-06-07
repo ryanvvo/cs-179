@@ -11,6 +11,8 @@ from pyro.infer import SVI, Trace_ELBO
 from pyro.optim import Adam, ClippedAdam
 
 epoch_ref = [0]
+REC_PER_EPOCH = 1
+
 class DBN(nn.Module):
     """
     3-layer DBN:
@@ -142,10 +144,10 @@ def tune_dbn(meta: dict, dbn:DBN, epochs:int = 10, lr:float = 1e-3) -> DBN:
             total_loss += svi.step(v, y)
         avg = total_loss / len(train_loader.dataset)
         print("DBN epoch", epoch)
-        if (epoch + 1) % 10 == 0:
+        dbn.eval()
+        if (epoch + 1) % REC_PER_EPOCH == 0:
             print("evaluating...")
             tr_correct = tr_total = te_correct = te_total = 0
-            dbn.eval()
             for v, y in train_loader:
                 pred = dbn(v).argmax(dim=-1)
                 tr_correct += (pred == y).sum().item()
@@ -172,9 +174,9 @@ def tune_dbn(meta: dict, dbn:DBN, epochs:int = 10, lr:float = 1e-3) -> DBN:
 
 if __name__ == '__main__':
     #hyperparams
-    epochs_per_layer = 5
+    epochs_per_layer = 20
     lr = 1e-3
-    epochs = 10
+    epochs = 20
 
     pyro.clear_param_store()
     dbn = DBN()
