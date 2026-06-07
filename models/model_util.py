@@ -3,8 +3,9 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import os
 
-SAVE_DIR = "saved_models"
-os.makedirs("saved_models", exist_ok=True)
+MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
+SAVE_DIR = os.path.join(MODULE_DIR, "saved_models")
+os.makedirs(SAVE_DIR, exist_ok=True)
 
 NUM_CLASSES = 10
 IMG_DIM = 784 # 28 × 28
@@ -51,6 +52,7 @@ def load_model(name: str, model: "nn.Module | None" = None,) -> dict:
     Returns the full payload dict so callers can read epoch / meta.
     """
     path = os.path.join(SAVE_DIR, f"{name}.pt")
+    print("Loading from", path)
     try:
         payload = torch.load(path, weights_only=False)
     except FileNotFoundError:
