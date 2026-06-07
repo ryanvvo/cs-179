@@ -63,7 +63,7 @@ if __name__ == '__main__':
             correct += predicted.eq(labels).sum().item()
 
         train_acc = 100.0 * correct / total
-        if (epoch+1) % 10 == 0:
+        if (epoch+1) % 1 == 0:
             print("Logging training_acc and loss...")
             training_acc.append((epoch+1, train_acc))
             loss_ref.append((epoch+1, running_loss/len(train_loader)))
