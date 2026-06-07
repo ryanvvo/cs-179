@@ -164,7 +164,7 @@ if __name__ == '__main__':
     dbn = DBN()
 
     install_interrupt_save("deep-belief-network", dbn, epoch_ref)
-    payload = load_model("saved_models/deep-belief-network.pt", dbn)
+    payload = load_model("deep-belief-network", dbn)
     if not payload:
         pretrain_dbn(dbn, epochs_per_layer=epochs_per_layer, lr=lr)
     else:

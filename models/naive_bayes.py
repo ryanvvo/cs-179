@@ -175,7 +175,7 @@ def train_naive_bayes(epochs:int = 5, lr:float = 5e-3) -> NaiveBayesModel:
 
 if __name__ == '__main__':
     pyro.clear_param_store()
-    payload = load_model("saved_models/naive-bayes-model.pt", None)
+    payload = load_model("naive-bayes-model", None)
     epoch_ref[0] = payload.get("epoch", 0)
     # Hyper parameters
     epochs = 5

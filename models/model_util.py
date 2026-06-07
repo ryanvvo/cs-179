@@ -45,11 +45,12 @@ def save_model(name:str, model:"nn.Module | None", epoch:int, meta: dict | None 
     return path
 
 
-def load_model(path: str, model: "nn.Module | None" = None,) -> dict:
+def load_model(name: str, model: "nn.Module | None" = None,) -> dict:
     """
     Restore weights + Pyro param store from a checkpoint file.
     Returns the full payload dict so callers can read epoch / meta.
     """
+    path = os.path.join(SAVE_DIR, f"{name}.pt")
     try:
         payload = torch.load(path, weights_only=False)
     except FileNotFoundError:

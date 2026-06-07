@@ -118,7 +118,7 @@ if __name__ == '__main__':
     rbm_model = RBM(IMG_DIM, hidden_dim)
 
     install_interrupt_save("restricted-boltzmann-model", rbm_model, epoch_ref)
-    payload = load_model("saved_models/restricted-boltzmann-model.pt", rbm_model)
+    payload = load_model("restricted-boltzmann-model", rbm_model)
 
     epoch_ref[0] = payload.get("epoch", 0)
 
