@@ -63,7 +63,7 @@ def load_model(name: str, model: "nn.Module | None" = None,) -> dict:
     return payload
 
 
-def install_interrupt_save(name: str, model: "nn.Module | None", epoch_ref: list):
+def install_interrupt_save(name: str, model: "nn.Module | None", epoch_ref: list, meta: dict):
     """
     Register a SIGINT (Ctrl+C) handler that saves a checkpoint
     before re-raising KeyboardInterrupt.
@@ -73,7 +73,7 @@ def install_interrupt_save(name: str, model: "nn.Module | None", epoch_ref: list
 
     def _handler(sig, frame):
         print(f"\nsaving {name} at epoch {epoch_ref[0]} ...")
-        save_model(name, model, epoch_ref[0], meta={"interrupted": True})
+        save_model(name, model, epoch_ref[0], meta=meta)
         signal.signal(signal.SIGINT, original)
         raise KeyboardInterrupt
 

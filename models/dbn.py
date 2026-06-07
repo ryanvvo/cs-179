@@ -123,10 +123,13 @@ def pretrain_dbn(dbn: DBN, epochs_per_layer: int = 5, lr: float = 1e-3):
             avg = total_loss / len(train_loader.dataset)
             print(f"\tepoch {epoch} | ELBO loss {avg:.4f}")
 
-def tune_dbn(dbn:DBN, epochs:int = 10, lr:float = 1e-3) -> DBN:
+def tune_dbn(meta: dict, dbn:DBN, epochs:int = 10, lr:float = 1e-3) -> DBN:
     print("\nDBN Fine-tuning with SVI (joint model + classifier)")
     train_loader, test_loader = get_loaders()
-
+    training_acc = meta.get("training_acc", [])
+    testing_acc = meta.get("testing_acc", [])
+    loss_ref = meta.get("loss", [])
+    print(training_acc);print(testing_acc);print(loss_ref)
     svi = SVI(dbn.model, dbn.guide,
               ClippedAdam({"lr": lr, "clip_norm": 10.0}),
               loss=Trace_ELBO())
@@ -138,19 +141,32 @@ def tune_dbn(dbn:DBN, epochs:int = 10, lr:float = 1e-3) -> DBN:
         for v, y in train_loader:
             total_loss += svi.step(v, y)
         avg = total_loss / len(train_loader.dataset)
-
-        # Accuracy
-        correct = total = 0
-        dbn.eval()
-        with torch.no_grad():
+        print("DBN epoch", epoch)
+        if (epoch + 1) % 10 == 0:
+            print("evaluating...")
+            tr_correct = tr_total = te_correct = te_total = 0
+            dbn.eval()
+            for v, y in train_loader:
+                pred = dbn(v).argmax(dim=-1)
+                tr_correct += (pred == y).sum().item()
+                tr_total += y.size(0)
             for v, y in test_loader:
-                preds = dbn(v).argmax(dim=-1)
-                correct += (preds == y).sum().item()
-                total   += y.size(0)
+                pred = dbn(v).argmax(dim=-1)
+                te_correct += (pred == y).sum().item()
+                te_total += y.size(0)
+
+            tr_acc = 100.0 * tr_correct / tr_total
+            te_acc = 100.0 * te_correct / te_total
+
+            testing_acc.append((epoch+1, te_acc))
+            training_acc.append((epoch+1, tr_acc))
+            loss_ref.append((epoch+1, avg))
+            meta["training_acc"]=training_acc; meta["testing_acc"]=testing_acc; meta['loss']=loss_ref
+            print(f"ELBO {avg:.4f} | train acc {tr_acc:.2f} % "
+                  f"| test acc {te_acc:.2f} %")
+
         dbn.train()
 
-        print(f"DBN epoch {epoch} | ELBO {avg:.4f} "
-              f"| test acc {correct / total:.3%}")
 
     return dbn
 
@@ -163,13 +179,14 @@ if __name__ == '__main__':
     pyro.clear_param_store()
     dbn = DBN()
 
-    install_interrupt_save("deep-belief-network", dbn, epoch_ref)
     payload = load_model("deep-belief-network", dbn)
+    meta = payload.get("meta", {})
+    install_interrupt_save("deep-belief-network", dbn, epoch_ref, meta)
     if not payload:
         pretrain_dbn(dbn, epochs_per_layer=epochs_per_layer, lr=lr)
     else:
         print("Pretraining skipped. Tuning...")
     epoch_ref[0] = payload.get("epoch", 0)
-    tune_dbn(dbn, epochs=epochs, lr=lr)
+    tune_dbn(meta, dbn, epochs=epochs, lr=lr)
 
-    save_model("deep-belief-network", dbn, epoch_ref[0])
+    save_model("deep-belief-network", dbn, epoch_ref[0], meta)

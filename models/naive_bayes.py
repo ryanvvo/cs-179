@@ -9,7 +9,7 @@ from pyro.infer import SVI, Trace_ELBO
 from pyro.optim import Adam
 
 epoch_ref = [0]
-install_interrupt_save("naive-bayes-model", None, epoch_ref)
+
 class NaiveBayesModel:
     """
     Bayesian Naive Bayes with:
@@ -148,8 +148,12 @@ class NaiveBayesModel:
         pi = (class_n + laplace) / (class_n.sum() + NUM_CLASSES * laplace)
         return torch.log(pi), torch.log(theta), torch.log(1 - theta)
 
-def train_naive_bayes(epochs:int = 5, lr:float = 5e-3) -> NaiveBayesModel:
+def train_naive_bayes(meta, epochs:int = 5, lr:float = 5e-3) -> NaiveBayesModel:
     train_loader, test_loader = get_loaders()
+    training_acc = meta.get("training_acc", [])
+    testing_acc = meta.get("testing_acc", [])
+    loss_ref = meta.get("loss", [])
+    print(training_acc);print(testing_acc);print(loss_ref)
 
     nb  = NaiveBayesModel()
     svi = SVI(nb.model, nb.guide, Adam({"lr": lr}), loss=Trace_ELBO())
@@ -160,25 +164,42 @@ def train_naive_bayes(epochs:int = 5, lr:float = 5e-3) -> NaiveBayesModel:
         for x, y in train_loader:
             total_loss += svi.step(x, y)
         avg = total_loss / len(train_loader.dataset)
-
+        print(f"NB epoch: {epoch}")
         # Accuracy
-        correct = total = 0
-        for x, y in test_loader:
-            preds = nb.predict(x)
-            correct += (preds == y).sum().item()
-            total   += y.size(0)
+        if (epoch + 1) % 10 == 0:
+            print("evaluating...")
+            tr_correct = tr_total = te_correct = te_total = 0
+            for x, y in train_loader:
+                tr_pred = nb.predict(x)
+                tr_correct += (tr_pred == y).sum().item()
+                tr_total   += y.size(0)
+            for x, y in test_loader:
+                tr_pred = nb.predict(x)
+                te_correct += (tr_pred == y).sum().item()
+                te_total   += y.size(0)
 
-        print(f"NB epoch {epoch} | ELBO {avg:.4f} "
-              f"| test acc {correct / total:.3%}")
+            tr_acc = 100.0 * tr_correct / tr_total
+            te_acc = 100.0 * te_correct / te_total
+
+            print(f"ELBO {avg:.4f} | train acc {tr_acc:.2f} %"
+                  f"| test acc {te_acc:.2f} %")
+            testing_acc.append((epoch+1, te_acc))
+            training_acc.append((epoch+1, tr_acc))
+            loss_ref.append((epoch+1, avg))
+            meta["training_acc"]=training_acc; meta["testing_acc"]=testing_acc; meta['loss']=loss_ref
+
 
     return nb
 
 if __name__ == '__main__':
     pyro.clear_param_store()
     payload = load_model("naive-bayes-model", None)
+    meta = payload.get("meta", {})
     epoch_ref[0] = payload.get("epoch", 0)
+    install_interrupt_save("naive-bayes-model", None, epoch_ref, meta)
+
     # Hyper parameters
-    epochs = 5
+    epochs = 10
     lr = 5e-3
-    nb = train_naive_bayes(epoch_ref[0], epochs, lr)
-    save_model("naive-bayes-model", None, epoch_ref[0])
+    nb = train_naive_bayes(meta, epochs, lr)
+    save_model("naive-bayes-model", None, epoch_ref[0], meta)

@@ -22,10 +22,16 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.01)
     train_loader, test_loader = get_loaders()
-    install_interrupt_save("linear-classifier", model, epoch_ref)
     payload = load_model("linear-classifier", model=model)
 
-    # training
+    meta = payload.get("meta", {})
+    training_acc = meta.get("training_acc", [])
+    testing_acc = meta.get("testing_acc", [])
+    loss_ref = meta.get("loss", [])
+    print(training_acc);print(testing_acc);print(loss_ref)
+    install_interrupt_save("linear-classifier", model, epoch_ref, meta)
+
+    #Training
     epoch_ref[0] = payload.get("epoch", 0)
     starting_epoch = epoch_ref[0]
     epochs = 10
@@ -57,6 +63,26 @@ if __name__ == '__main__':
             correct += predicted.eq(labels).sum().item()
 
         train_acc = 100.0 * correct / total
+        if (epoch+1) % 10 == 0:
+            print("Logging training_acc and loss...")
+            training_acc.append((epoch+1, train_acc))
+            loss_ref.append((epoch+1, running_loss/len(train_loader)))
+
+            with torch.no_grad():
+                for images, labels in test_loader:
+                    images = images.to(device)
+                    labels = labels.to(device)
+
+                    outputs = model(images)
+                    _, predicted = outputs.max(1)
+
+                    total += labels.size(0)
+                    correct += predicted.eq(labels).sum().item()
+
+            test_acc = 100.0 * correct / total
+            print(f"Test Accuracy: {test_acc:.2f}%")
+            testing_acc.append((epoch + 1, test_acc))
+            meta["training_acc"]=training_acc; meta["testing_acc"]=testing_acc; meta['loss']=loss_ref
 
         print(
             f"Epoch {epoch+1}/{starting_epoch + epochs} | "
@@ -70,17 +96,6 @@ if __name__ == '__main__':
     correct = 0
     total = 0
 
-    with torch.no_grad():
-        for images, labels in test_loader:
-            images = images.to(device)
-            labels = labels.to(device)
 
-            outputs = model(images)
-            _, predicted = outputs.max(1)
-
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
-
-    test_acc = 100.0 * correct / total
-    print(f"Test Accuracy: {test_acc:.2f}%")
-    save_model("linear-classifier", model=model, epoch = starting_epoch + epochs)
+    meta["training_acc"]=training_acc; meta["testing_acc"]=testing_acc; meta['loss']=loss_ref
+    save_model("linear-classifier", model=model, epoch = starting_epoch + epochs, meta=meta)
