@@ -98,6 +98,7 @@ def train_rbm(meta:dict, rbm: RBM, epochs:int = 10, h_dim:int =256,lr:float =1e-
             optimizer.zero_grad()
             loss = rbm.cd_loss(v, k=1)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(rbm.parameters(), 5.0)
             optimizer.step()
 
             total_loss += loss.item()
