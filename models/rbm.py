@@ -135,7 +135,7 @@ def train_rbm(meta:dict, rbm: RBM, epochs:int = 10, h_dim:int =256,lr:float =1e-
 
 if __name__ == '__main__':
     #hyper params
-    epochs = 20
+    epochs = 100
     hidden_dim = 256
     lr = 1e-3
 

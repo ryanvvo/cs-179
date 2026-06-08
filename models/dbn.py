@@ -120,7 +120,7 @@ if __name__ == '__main__':
     #hyperparams
     epochs_per_layer = 20
     lr = 1e-3
-    epochs = 20
+    epochs = 200
 
     pyro.clear_param_store()
     dbn = DBN()
