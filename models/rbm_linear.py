@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
 	epoch_ref[0] = payload_clf.get("epoch", 0)
 	starting_epoch = epoch_ref[0]
-	epochs = 5
+	epochs = 195
 
 	rbm.eval()
 	for epoch in range(starting_epoch, starting_epoch + epochs):

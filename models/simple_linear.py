@@ -34,7 +34,7 @@ if __name__ == '__main__':
     #Training
     epoch_ref[0] = payload.get("epoch", 0)
     starting_epoch = epoch_ref[0]
-    epochs = 20
+    epochs = 200
 
     for epoch in range(starting_epoch , starting_epoch + epochs):
         epoch_ref[0] = epoch
