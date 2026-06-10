@@ -39,3 +39,4 @@ if __name__ == '__main__':
     graph_model("deep-belief-network")
     graph_model("naive-bayes-model")
     graph_model("restricted-boltzmann-model")
+    graph_model("rbm-linear-classifier")

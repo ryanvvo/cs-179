@@ -1,7 +1,6 @@
 from model_util import *
 
 import torch
-from torch.utils.data import DataLoader
 
 import pyro
 import pyro.distributions as dist
@@ -35,13 +34,7 @@ class NaiveBayesModel:
         self.beta_theta = beta_theta
 
     def model(self, x:torch.Tensor, y:torch.Tensor | None = None):
-        """
-        p(pi, theta, y, x):
-          pi     ~ Dirichlet(α_pi · 1_C)
-          theta_{c} ~ Beta(alpha, beta)^D for each class c
-          y_n    ~ Categorical(pi)
-          x_ni   ~ Bernoulli(theta_{y_n, i})
-        """
+        """ Model for SVI """
         # Class prior
         pi = pyro.sample(
             "pi",
@@ -74,11 +67,7 @@ class NaiveBayesModel:
             )
 
     def guide(self, x: torch.Tensor, y: torch.Tensor | None = None):
-        """
-        Mean-field variational posterior:
-          q(pi) = Dirichlet(α_hat_pi)
-          q(theta_{c})= Beta(a_hat_{c,i}, b_hat_{c,i}) for each (c, i)
-        """
+        """ Guide for SVI """
         # Variational Dirichlet for pi
         alpha_q = pyro.param(
             "alpha_q",
@@ -103,10 +92,6 @@ class NaiveBayesModel:
 
     @torch.no_grad()
     def predict(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Predict class labels using the posterior mean of theta and pi:
-            y_hat = argmax_c log pi_c + sum(x_i log theta_{c,i} + (1-x_i) log(1-theta_{c,i}))
-        """
         # Posterior means
         a_q = pyro.param("a_q") # (C, D)
         b_q = pyro.param("b_q") # (C, D)
@@ -128,26 +113,6 @@ class NaiveBayesModel:
         log_post  = log_lik + log_prior # (N, C)
 
         return log_post.argmax(dim=-1)
-
-    @staticmethod
-    def fit_mle(train_loader: DataLoader, laplace: float = 1.0):
-        """
-        Maximum-likelihood estimation with Laplace smoothing.
-        Returns (log_pi, log_theta, log_one_minus_theta) ready
-        for fast prediction without the Pyro param store.
-        """
-        counts = torch.zeros(NUM_CLASSES, IMG_DIM)
-        class_n = torch.zeros(NUM_CLASSES)
-
-        for x, y in train_loader:
-            for c in range(NUM_CLASSES):
-                mask = (y == c)
-                counts[c]   += x[mask].sum(0)
-                class_n[c]  += mask.sum()
-
-        theta = (counts + laplace) / (class_n.unsqueeze(1) + 2 * laplace)
-        pi = (class_n + laplace) / (class_n.sum() + NUM_CLASSES * laplace)
-        return torch.log(pi), torch.log(theta), torch.log(1 - theta)
 
 def train_naive_bayes(meta, epochs:int = 5, lr:float = 5e-3) -> NaiveBayesModel:
     train_loader, test_loader = get_loaders()
@@ -200,7 +165,7 @@ if __name__ == '__main__':
     install_interrupt_save("naive-bayes-model", None, epoch_ref, meta)
 
     # Hyper parameters
-    epochs = 20
+    epochs = 3
     lr = 5e-3
     nb = train_naive_bayes(meta, epochs, lr)
     save_model("naive-bayes-model", None, epoch_ref[0], meta)
